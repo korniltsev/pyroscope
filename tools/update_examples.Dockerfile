@@ -29,5 +29,4 @@ COPY --from=node /opt /opt
 ENV PATH=$PATH:/usr/local/bin
 
 RUN curl -sSL https://get.rvm.io | bash
-RUN apt-get -y install gawk autoconf automake bison libffi-dev libgdbm-dev libsqlite3-dev libtool pkg-config sqlite3 libncurses5-dev libreadline-dev
 RUN /bin/bash -l -c "rvm install ruby-3.2.2 && rvm --default use ruby-3.2.2"
