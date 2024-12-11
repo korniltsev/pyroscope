@@ -9,17 +9,15 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
-
-	"github.com/grafana/regexp"
 )
 
 var ghToken string
 
-// this program requires gh cli, bundle, go to be installed
-// todo run it by cron & create a PR if needed
+// this program requires ruby, bundle, yarn, go to be installed
 func main() {
 
 	getGHToken()
@@ -34,7 +32,7 @@ func main() {
 }
 
 func getGHToken() {
-	ghToken, _ = s.sh("gh auth token")
+	ghToken = os.Getenv("GITHUB_TOKEN")
 }
 
 func extractNodeJSVersion(tag Tag) *version {
@@ -57,7 +55,7 @@ func extractNodeJSVersion(tag Tag) *version {
 func updateNodeJS() {
 	tags := getTagsV("grafana/pyroscope-nodejs", extractNodeJSVersion)
 	last := tags[len(tags)-1]
-	fmt.Println(last)
+	log.Print("last node tag", last)
 
 	replPackageJson := fmt.Sprintf(`    "@pyroscope/nodejs": "v%s",`, last.version())
 	rePackageJson := regexp.MustCompile(`    "@pyroscope/nodejs": "[^"]+",`)
@@ -71,7 +69,7 @@ func updateNodeJS() {
 func updateDotnet() {
 	tags := getTagsV("grafana/pyroscope-dotnet", extractDotnetVersion())
 	last := tags[len(tags)-1]
-	fmt.Println(last)
+	log.Print("last dotnet tag", last)
 
 	reDockerGlibc := regexp.MustCompile("pyroscope/pyroscope-dotnet:\\d+\\.\\d+\\.\\d+-glibc")
 	replDockerGlibc := fmt.Sprintf("pyroscope/pyroscope-dotnet:%s-glibc", last.version())
@@ -93,7 +91,7 @@ func updateDotnet() {
 func updatePython() {
 	tags := getTagsV("grafana/pyroscope-rs", extractRSVersion("python"))
 	last := tags[len(tags)-1]
-	fmt.Println(last)
+	log.Print("last python tag", last)
 
 	re := regexp.MustCompile("pyroscope-io==\\d+\\.\\d+\\.\\d+")
 	repl := fmt.Sprintf("pyroscope-io==%s", last.version())
@@ -107,7 +105,7 @@ func updatePython() {
 func updateRuby() {
 	tags := getTagsV("grafana/pyroscope-rs", extractRSVersion("ruby"))
 	last := tags[len(tags)-1]
-	fmt.Println(last)
+	log.Print("last ruby tag", last)
 
 	re := regexp.MustCompile("gem ['\"]pyroscope['\"].*")
 	repl := fmt.Sprintf("gem 'pyroscope', '= %s'", last.version())
@@ -123,7 +121,7 @@ func updateRuby() {
 func updateJava() {
 	tags := getTagsV("grafana/pyroscope-java", extractGoVersion(""))
 	last := tags[len(tags)-1]
-	fmt.Println(last)
+	log.Print("last java tag", last)
 	reJarURL := regexp.MustCompile("https://github\\.com/grafana/pyroscope-java/releases/download/(v\\d+\\.\\d+\\.\\d+)/pyroscope\\.jar")
 	lastJarURL := "https://github.com/grafana/pyroscope-java/releases/download/" + last.versionV() + "/pyroscope.jar"
 	replaceInplace(reJarURL, "examples/language-sdk-instrumentation/java/fib/Dockerfile", lastJarURL)
@@ -219,7 +217,7 @@ func extractDotnetVersion() func(tag Tag) *version {
 		re := regexp.MustCompile("v(\\d+).(\\d+).(\\d+)-pyroscope")
 		match := re.FindStringSubmatch(tag.Name)
 		if match != nil {
-			fmt.Println(len(match), match)
+			//fmt.Println(len(match), match)
 
 			major, err := strconv.Atoi(match[1])
 			requireNoError(err, "strconv")
@@ -236,7 +234,7 @@ func extractDotnetVersion() func(tag Tag) *version {
 
 func getTagsV(repo string, extractVersion func(Tag) *version) []version {
 	tags := getTags(repo)
-	fmt.Println(tags)
+	log.Print("tags ", repo, tags)
 	versions := []version{}
 
 	for _, tag := range tags {
@@ -298,8 +296,8 @@ func getTags(repo string) []Tag {
 		url := "https://api.github.com/repos/" + repo + "/tags?page=" + strconv.Itoa(page) + "&per_page=100"
 		log.Printf("GET %s", url)
 		req, err := http.NewRequest("GET", url, nil)
-		req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(ghToken))
 		requireNoError(err, "new request")
+		req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(ghToken))
 		resp, err := http.DefaultClient.Do(req)
 		requireNoError(err, "do request")
 		if resp.StatusCode != 200 {
@@ -345,8 +343,8 @@ func (s *sh) cmd(cmdArgs ...string) (string, string) {
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	err := cmd.Run()
-	fmt.Println(stdout.String())
-	fmt.Println(stderr.String())
+	log.Print("stdout", stdout.String())
+	log.Print("stderr", stderr.String())
 	requireNoError(err, strings.Join(cmdArgs, " "))
 	return stdout.String(), stderr.String()
 }

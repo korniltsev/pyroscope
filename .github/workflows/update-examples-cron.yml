@@ -1,0 +1,35 @@
+name: Update Examples Cron
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-examples-cron:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: |
+          set -ex
+          gh auth status
+          make tools/update_examples
+          if ! git diff --exit-code;
+          then
+              git config --local user.name 'Pyroscope Bot'
+              git config --local user.email 'dmitry+bot@pyroscope.io'
+              git checkout -b gh_bot_examples_update
+              git add .
+              git commit -m "chore(examples): update examples"
+              git push -f https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh_bot_examples_update
+              gh pr create --title "chore(examples): update examples" --body "make tools/update_examples" --repo ${{ github.repository }} ||\
+                gh pr edit --title "chore(examples): update examples" --body "make tools/update_examples" --repo ${{ github.repository }}
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

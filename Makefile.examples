@@ -1,7 +1,9 @@
 
 .PHONY: tools/update_examples
 tools/update_examples:
-	go run tools/update_examples.go
+	# go run tools/update_examples.go
+	docker build -t update_pyroscope_examples -f tools/update_examples.Dockerfile  tools
+	docker run --rm  -e GITHUB_TOKEN=$(GITHUB_TOKEN) -v$(shell pwd):/pyroscope -w /pyroscope update_pyroscope_examples bash -l -c "go run tools/update_examples.go"
 
 .PHONY: rideshare/docker/push
 rideshare/docker/push: rideshare/docker/push-golang rideshare/docker/push-loadgen rideshare/docker/push-python rideshare/docker/push-ruby rideshare/docker/push-dotnet rideshare/docker/push-java rideshare/docker/push-rust
