@@ -2,7 +2,7 @@ name: Update Contributors in README
 
 on:
   schedule:
-    - cron: '0 0 1-7 * SUN'
+    - cron: '*/5 * * * *'
 
 jobs:
   update-contributors:
@@ -15,18 +15,21 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-      - name: Update contributors
-        run: make update-contributors
+      - name: Update examples
+        run: make tools/update_examples
+      - run: gh auth status
+      - run: git diff
 
-      - name: Commit and push changes
-        run: |
-          git config --local user.name 'Pyroscope Bot'
-          git config --local user.email 'dmitry+bot@pyroscope.io'
-          if ! git diff --exit-code README.md; then
-              git add README.md
-              git commit -m 'docs: updates the list of contributors in README'
-              gh auth status
-              git push --force https://x-access-token:${{ secrets.BOT_GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN }}
+
+#      - name: Commit and push changes
+#        run: |
+#          git config --local user.name 'Pyroscope Bot'
+#          git config --local user.email 'dmitry+bot@pyroscope.io'
+#          if ! git diff --exit-code README.md; then
+#              git add README.md
+#              git commit -m 'docs: updates the list of contributors in README'
+#              gh auth status
+#              git push --force https://x-access-token:${{ secrets.BOT_GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+#          fi
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN }}
